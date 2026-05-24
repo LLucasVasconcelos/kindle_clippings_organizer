@@ -135,9 +135,9 @@ class ClippingsProcessor:
 
         return grouped
 
-    def export_to_text(self, clippings: List[Clipping], output_file: str) -> bool:
+    def export_to_markdown(self, clippings: List[Clipping], output_file: str) -> bool:
         """
-        Exporta anotações para arquivo de texto formatado.
+        Exporta anotações para arquivo Markdown otimizado para Obsidian.
 
         Args:
             clippings: Lista de anotações do livro
@@ -152,22 +152,105 @@ class ClippingsProcessor:
                 os.makedirs(output_dir, exist_ok=True)
 
             with open(output_file, "w", encoding="utf-8") as f:
-                # Cabeçalho
-                f.write(f"{'='*60}\n")
-                f.write(f"ANOTAÇÕES - {clippings[0].book_title}\n")
-                f.write(f"Autor: {clippings[0].author}\n")
-                f.write(f"Total de anotações: {len(clippings)}\n")
-                f.write(f"{'='*60}\n\n")
+                # Frontmatter YAML
+                from datetime import datetime
+                today = datetime.now().strftime("%Y-%m-%d")
+
+                book_title = clippings[0].book_title
+                author = clippings[0].author
+
+                f.write("---\n")
+                f.write(f'title: "{book_title}"\n')
+                f.write(f'author: "{author}"\n')
+                f.write(f"processed: {today}\n")
+                f.write(f"total_clippings: {len(clippings)}\n")
+                f.write("---\n\n")
+
+                # Título do livro
+                f.write(f"# 📚 {book_title}\n\n")
+                f.write(f"**Autor:** {author}  \n")
+                f.write(f"**Total de anotações:** {len(clippings)}  \n")
+                f.write(f"**Processado:** {today}\n\n")
+
+                f.write("---\n\n")
 
                 # Anotações
+                f.write("## Anotações\n\n")
+
                 for idx, clipping in enumerate(clippings, 1):
-                    f.write(f"[{idx}] {clipping.clip_type}\n")
-                    f.write(f"Localização: {clipping.page_location}\n")
-                    f.write(f"Data: {clipping.date}\n")
-                    f.write(f"\n{clipping.content}\n")
-                    f.write("\n" + "-" * 60 + "\n\n")
+                    # Header da anotação
+                    f.write(f"### [{idx}] {clipping.clip_type}\n\n")
+
+                    # Metadados
+                    f.write(f"- **Localização:** {clipping.page_location}\n")
+                    f.write(f"- **Data:** {clipping.date}\n")
+                    f.write(f"- **Tags:** #kindle #anotação #{self._sanitize_tag(book_title)}\n\n")
+
+                    # Conteúdo (blockquote)
+                    f.write("> ")
+                    f.write(clipping.content.replace("\n", "\n> "))
+                    f.write("\n\n")
+                    f.write("---\n\n")
 
             return True
         except Exception as e:
             print(f"❌ Erro ao exportar: {e}")
+            return False
+
+    def _sanitize_tag(self, text: str) -> str:
+        """Converte texto para tag válida do Obsidian."""
+        return text.lower().replace(" ", "-").replace("'", "").replace('"', '')
+
+    def export_index(self, grouped: Dict[str, List[Clipping]], output_file: str = "output/INDEX.md") -> bool:
+        """
+        Cria um índice de todos os livros processados.
+
+        Args:
+            grouped: Dicionário com livros agrupados
+            output_file: Caminho do arquivo índice
+
+        Returns:
+            True se exportação bem-sucedida
+        """
+        try:
+            output_dir = os.path.dirname(output_file)
+            if output_dir and not os.path.exists(output_dir):
+                os.makedirs(output_dir, exist_ok=True)
+
+            from datetime import datetime
+            today = datetime.now().strftime("%Y-%m-%d")
+
+            with open(output_file, "w", encoding="utf-8") as f:
+                f.write("---\n")
+                f.write('title: "Índice de Anotações Kindle"\n')
+                f.write(f"generated: {today}\n")
+                f.write(f"total_books: {len(grouped)}\n")
+                f.write("---\n\n")
+
+                f.write("# 📚 Índice de Anotações Kindle\n\n")
+                f.write(f"**Data de processamento:** {today}  \n")
+                f.write(f"**Total de livros:** {len(grouped)}  \n")
+                f.write(f"**Total de anotações:** {sum(len(clips) for clips in grouped.values())}\n\n")
+
+                f.write("---\n\n")
+
+                # Índice de livros
+                f.write("## 📖 Livros\n\n")
+
+                for book_title, clippings in sorted(grouped.items()):
+                    author = clippings[0].author if clippings else "Desconhecido"
+                    tag = self._sanitize_tag(book_title)
+
+                    # Cria link interno do Obsidian
+                    f.write(f"### [[{book_title}/anotacoes|{book_title}]]\n\n")
+                    f.write(f"**Autor:** {author}  \n")
+                    f.write(f"**Anotações:** {len(clippings)}  \n")
+                    f.write(f"**Tags:** #{tag}\n\n")
+
+                f.write("---\n\n")
+                f.write("*Criado com Kindle Clippings Organizer para Obsidian*\n")
+
+            return True
+        except Exception as e:
+            print(f"❌ Erro ao criar índice: {e}")
             return False
