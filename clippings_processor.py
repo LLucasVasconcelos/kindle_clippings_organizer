@@ -15,8 +15,9 @@ class Clipping:
     book_title: str
     author: str
     content: str
-    page_location: str
     clip_type: str
+    page: str
+    position: str
     date: str
 
 
@@ -69,7 +70,7 @@ class ClippingsProcessor:
 
         Formato esperado:
             Título do Livro (Autor)
-            - Localização | Tipo | Data
+            - Tipo | Página/Posição | Data
 
             Conteúdo da anotação
 
@@ -78,25 +79,27 @@ class ClippingsProcessor:
         """
         lines = entry.split("\n")
 
-        if len(lines) < 3:
+        if len(lines) < 2:
             return None
 
         header = lines[0].strip()
         metadata = lines[1].strip()
         content = "\n".join(lines[2:]).strip()
 
-        if not content:
-            return None
-
         book_title, author = self._parse_header(header)
-        page_loc, clip_type, date = self._parse_metadata(metadata)
+        clip_type, page, position, date = self._parse_metadata(metadata)
+
+        # Marcadores podem não ter conteúdo textual
+        if not content and clip_type != "Marcador":
+            return None
 
         return Clipping(
             book_title=book_title,
             author=author,
             content=content,
-            page_location=page_loc,
             clip_type=clip_type,
+            page=page,
+            position=position,
             date=date,
         )
 
@@ -107,14 +110,64 @@ class ClippingsProcessor:
             return match.group(1).strip(), match.group(2).strip()
         return header, "Desconhecido"
 
-    def _parse_metadata(self, metadata: str) -> Tuple[str, str, str]:
-        """Extrai localização, tipo e data da anotação."""
-        pattern = r"- (.+?)\s*\|\s*(.+?)\s*\|\s*(.+)"
-        match = re.match(pattern, metadata)
+    def _parse_metadata(self, metadata: str) -> Tuple[str, str, str, str]:
+        """Extrai tipo, página, posição e data da anotação."""
+        MONTH_MAP = {
+            "janeiro": "jan", "fevereiro": "fev", "março": "mar",
+            "abril": "abr", "maio": "mai", "junho": "jun",
+            "julho": "jul", "agosto": "ago", "setembro": "set",
+            "outubro": "out", "novembro": "nov", "dezembro": "dez",
+        }
 
-        if match:
-            return match.group(1).strip(), match.group(2).strip(), match.group(3).strip()
-        return "", "", ""
+        clip_type = ""
+        page = ""
+        position = ""
+        date = ""
+
+        # Extrair tipo (destaque, nota, marcador)
+        type_match = re.search(r"(destaque|nota|marcador)", metadata, re.IGNORECASE)
+        if type_match:
+            type_raw = type_match.group(1).lower()
+            clip_type = {
+                "destaque": "Destaque",
+                "nota": "Nota",
+                "marcador": "Marcador",
+            }.get(type_raw, type_raw)
+
+        # Extrair data: formato "Adicionado: dia-semana, DD de MES de YYYY HH:MM:SS"
+        date_match = re.search(
+            r"Adicionado:\s+\w[\w-]+,\s+(\d{1,2})\s+de\s+(\w+)\s+de\s+(\d{4})",
+            metadata
+        )
+        if date_match:
+            day = date_match.group(1)
+            month_str = date_match.group(2).lower()
+            year = date_match.group(3)
+            month_abbr = MONTH_MAP.get(month_str, month_str[:3])
+            date = f"{day} {month_abbr} {year}"
+
+        # Extrair página e posição
+        # Padrão 1/2: "na página PAGE | posição POS | Adicionado"
+        m = re.search(r"na p[áa]gina\s+([\w-]+)\s*\|\s*posi[çc][ãa]o\s+([\w-]+)", metadata)
+        if m:
+            page = m.group(1).strip()
+            position = m.group(2).strip()
+        else:
+            # Padrão 3: "na página PAGE | Adicionado" (sem posição)
+            m = re.search(r"na p[áa]gina\s+([\w-]+)\s*\|", metadata)
+            if m:
+                page = m.group(1).strip()
+            else:
+                # Padrão 4: "ou posição POS | Adicionado" (sem página)
+                m = re.search(r"ou\s+posi[çc][ãa]o\s+([\w-]+)", metadata)
+                if m:
+                    position = m.group(1).strip()
+
+        # Normalizar página "XX-XX" para "XX"
+        if page and re.match(r"(\d+)-\1$", page):
+            page = page.split("-")[0]
+
+        return clip_type, page, position, date
 
     def group_by_book(self, clippings: List[Clipping]) -> Dict[str, List[Clipping]]:
         """
@@ -177,19 +230,42 @@ class ClippingsProcessor:
                 # Anotações
                 f.write("## Anotações\n\n")
 
+                # Emojis por tipo de anotação
+                EMOJI = {
+                    "Destaque": "📑",
+                    "Nota": "📝",
+                    "Marcador": "🔖",
+                }
+
                 for idx, clipping in enumerate(clippings, 1):
+                    emoji = EMOJI.get(clipping.clip_type, "📌")
+
+                    # Construir localização
+                    location_parts = []
+                    if clipping.page:
+                        location_parts.append(f"Página {clipping.page}")
+                    if clipping.position:
+                        location_parts.append(f"Posição {clipping.position}")
+
                     # Header da anotação
-                    f.write(f"### [{idx}] {clipping.clip_type}\n\n")
+                    if location_parts:
+                        location_str = ", ".join(location_parts)
+                        f.write(f"### [{idx}] {emoji} {clipping.clip_type} — {location_str}\n\n")
+                    else:
+                        f.write(f"### [{idx}] {emoji} {clipping.clip_type}\n\n")
 
-                    # Metadados
-                    f.write(f"- **Localização:** {clipping.page_location}\n")
-                    f.write(f"- **Data:** {clipping.date}\n")
-                    f.write(f"- **Tags:** #kindle #anotação #{self._sanitize_tag(book_title)}\n\n")
+                    # Conteúdo
+                    if clipping.clip_type == "Marcador" or not clipping.content:
+                        f.write("*(marcador sem conteúdo de texto)*\n\n")
+                    else:
+                        f.write("> ")
+                        f.write(clipping.content.replace("\n", "\n> "))
+                        f.write("\n\n")
 
-                    # Conteúdo (blockquote)
-                    f.write("> ")
-                    f.write(clipping.content.replace("\n", "\n> "))
-                    f.write("\n\n")
+                    # Tags
+                    type_tag = f"#{clipping.clip_type.lower()}"
+                    book_tag = f"#{self._sanitize_tag(book_title)}"
+                    f.write(f"*{clipping.date}* · #kindle {type_tag} {book_tag}\n\n")
                     f.write("---\n\n")
 
             return True
