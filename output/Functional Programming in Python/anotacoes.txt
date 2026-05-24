@@ -1,0 +1,30 @@
+============================================================
+ANOTAÇÕES - Functional Programming in Python
+Autor: Mertz David.
+Total de anotações: 3
+============================================================
+
+[1] posição 38-39
+Localização: Seu destaque na página 6
+Data: Adicionado: quarta-feira, 4 de setembro de 2024 14:04:58
+
+eschew side effects. This excludes the almost ubiquitous pattern
+
+------------------------------------------------------------
+
+[2] posição 49-50
+Localização: Seu destaque na página 7
+Data: Adicionado: quarta-feira, 4 de setembro de 2024 14:24:28
+
+widespread in most Python programs. That is, variables are frequently
+
+------------------------------------------------------------
+
+[3] posição 648-649
+Localização: Seu destaque na página 23
+Data: Adicionado: quarta-feira, 4 de setembro de 2024 15:18:44
+
+tautologously, on calling functions. Python actually gives us several different
+
+------------------------------------------------------------
+

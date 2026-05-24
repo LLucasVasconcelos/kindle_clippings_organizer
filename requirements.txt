@@ -1,0 +1,5 @@
+ebooklib>=0.18
+lxml>=4.9.0
+Pillow>=9.0.0
+html2text>=2020.1.16
+KFXZip>=0.5.3
