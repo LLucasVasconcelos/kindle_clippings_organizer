@@ -33,3 +33,9 @@ data/clippings/
 *.epub
 My Clippings.txt
 .DS_Store
+
+# Ignore contents of input and output directories, but keep the folders
+input/*
+!input/.gitkeep
+output/*
+!output/.gitkeep
