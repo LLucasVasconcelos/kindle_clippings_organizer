@@ -23,14 +23,11 @@ wheels/
 venv/
 ENV/
 env/
-output/
 .vscode/
 .idea/
 *.swp
 *.swo
 
-data/input/
-data/output/
 data/clippings/
 *.kfx
 *.epub
