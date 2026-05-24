@@ -77,4 +77,4 @@ Seu `My Clippings.txt` fica em:
 
 ---
 
-**Simples, rápido e funcional!** 📚✨
+**Simples, rápido e funcional!**
