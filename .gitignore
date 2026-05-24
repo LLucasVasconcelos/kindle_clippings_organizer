@@ -23,7 +23,7 @@ wheels/
 venv/
 ENV/
 env/
-
+output/
 .vscode/
 .idea/
 *.swp

@@ -32,8 +32,8 @@ def main():
 
 def process_clippings():
     """Processa arquivo My Clippings.txt e organiza anotações por livro."""
-    clippings_file = "../input/My Clippings.txt"
-    output_dir = "../output"
+    clippings_file = "input/My Clippings.txt"
+    output_dir = "output"
 
     if not os.path.exists(clippings_file):
         print(f"\n❌ Erro: {clippings_file} não encontrado\n")

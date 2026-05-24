@@ -20,7 +20,7 @@ python3 -m venv venv
 # Ativar
 source venv/bin/activate
 
-# Instalar dependências
+# Instalar dependências (se houver)
 pip install -r requirements.txt
 ```
 
@@ -35,7 +35,6 @@ cp "My Clippings.txt" input/
 ### 3. Executar
 
 ```bash
-cd src
 python main.py
 ```
 
@@ -58,19 +57,17 @@ output/
 
 ```
 .
-├── input/              ← Coloque My Clippings.txt aqui
-├── output/             ← Anotações organizadas
-├── src/
-│   ├── main.py        ← Menu principal
-│   └── clippings_processor.py  ← Processa anotações
-├── venv/              ← Ambiente virtual
+├── input/                    ← Coloque My Clippings.txt aqui
+├── output/                   ← Anotações organizadas
+├── main.py                   ← Menu principal
+├── clippings_processor.py    ← Processa anotações
+├── venv/                     ← Ambiente virtual
 └── README.md
 ```
 
 ## ⚙️ Dependências
 
 - Python 3.8+
-- Bibliotecas Python (veja requirements.txt)
 
 ## 💡 Dica
 
